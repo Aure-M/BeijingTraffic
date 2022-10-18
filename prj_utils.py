@@ -46,6 +46,7 @@ def mapTaxis(taxis,date,hour):
     beijing = {"lat":40.190632, "lon":116.412144,"radius":sqrt(16411/(np.pi*2))}
     lastTaxisPositions = getTaxiLastPos(taxis,date,hour)
     m = folium.Map(location=[beijing["lat"],beijing["lon"]])
+    st.write(len(lastTaxisPositions))
     for taxi in lastTaxisPositions:
         lat,lon,taxiId = taxi["latitude"], taxi["longitude"], taxi["taxiId"]     
         folium.Marker(
