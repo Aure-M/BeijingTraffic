@@ -28,7 +28,7 @@ def isDateEqualTo(dates,d):
 @st.cache(suppress_st_warning=True)
 def getTaxiLastPos(taxis,date,hour):
     filt = taxis[isDateEqualTo(taxis.index.map(getDate), date)]
-    filt = taxis[(taxis["hours"]<=hour+1)&(taxis["hours"]>=hour-1)][["latitude","longitude","taxiId"]]
+    filt = taxis[(taxis["hours"]<=hour)&(taxis["hours"]>=hour-1)][["latitude","longitude","taxiId"]]
     res = []
     taxis = filt["taxiId"].value_counts().index
     for t in taxis:
