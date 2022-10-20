@@ -34,7 +34,7 @@ def isDateEqualTo(dates,d):
 @st.cache(suppress_st_warning=True)
 def getTaxiLastPos(taxis,date,hour):
     filt = taxis[isDateEqualTo(taxis.index.map(getDate), date)]
-    filt = taxis[(taxis["hours"]<=hour)&(taxis["hours"]>=hour-1)][["latitude","longitude","taxiId","zone"]]
+    filt = taxis[(taxis["hours"]<=hour)&(taxis["hours"]>=hour-1)][["latitude","longitude","taxiId","to_zone"]]
     res = []
     taxis = filt["taxiId"].value_counts().index
     
@@ -51,7 +51,7 @@ def fetchData():
 
 def mapTaxis(taxis,date,hour):
     lastTaxisPositions = getTaxiLastPos(taxis,date,hour)
-    zoned = lastTaxisPositions["zone"].value_counts()
+    zoned = lastTaxisPositions["to_zone"].value_counts()
 
     # Define a layer to display on a map
     layer = pdk.Layer(
@@ -152,7 +152,7 @@ def getDistance(A,B):
     return distance(A["latitude"],B["latitude"],A["longitude"],B["longitude"])
 
 @st.cache(suppress_st_warning=True)
-def definecentersData(data,zoneRadius=15):
+def definecentersData(data,zoneRadius=5):
     locations = data[["longitude","latitude"]].value_counts()
     centers = []
     for current in locations.index.to_list():
@@ -168,8 +168,8 @@ def definecentersData(data,zoneRadius=15):
 
 @st.cache(suppress_st_warning=True)
 def getCentersData(taxis):
-    centers = definecentersData(taxis)
-    centersData = taxis.groupby(by="zone")["speed","res_T","res_D"].mean()
+    centers = definecentersData(taxis,)
+    centersData = taxis.groupby(by="to_zone")["speed","res_T","res_D"].mean()
     centersData[["longitude","latitude"]] = centers
     return centersData
 
