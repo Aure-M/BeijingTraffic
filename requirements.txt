@@ -5,3 +5,5 @@ streamlit_folium
 folium
 plotly
 numpy
+pydeck
+scipy

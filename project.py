@@ -1,7 +1,7 @@
 import pandas as pd 
 import streamlit as st
 import datetime 
-from prj_utils import fetchData, mapTaxis
+from prj_utils import fetchData, mapTaxis, taxistrafficAnalysis
     
 
 
@@ -38,3 +38,5 @@ with st.sidebar:
 if option == 'Taxis dashboard':
     if dashOption == "Taxis on map":
         mapTaxis(taxis,date,hour)
+    else:
+        taxistrafficAnalysis(taxis)
