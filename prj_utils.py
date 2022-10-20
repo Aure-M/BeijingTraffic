@@ -203,7 +203,16 @@ def taxistrafficAnalysis(taxis):
     )
 
     # Render
-    r = pdk.Deck(layers=layers, initial_view_state=view_state)
+    r = pdk.Deck(
+            layers=layers,
+            initial_view_state=view_state,
+            tooltip={
+                'html': '<b>Area:</b> {index}',
+                'style': {
+                    'color': 'white'
+                }
+            }
+        )
     st.pydeck_chart(r)
 
 #---------------------------------------------------------------------------
