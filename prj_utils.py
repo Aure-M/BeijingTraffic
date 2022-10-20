@@ -44,7 +44,7 @@ def getTaxiLastPos(taxis,date,hour):
 
 @st.cache(suppress_st_warning=True)
 def fetchData():
-    taxis = pd.read_csv("./taxis2.csv",index_col="datetime")
+    taxis = pd.read_csv("./taxisFiltered.csv",index_col="datetime")
     taxis.index = pd.to_datetime(taxis.index)
     taxis.sort_index(axis=0,inplace = True)
     return taxis
