@@ -1,14 +1,26 @@
 import pandas as pd 
 import streamlit as st
 import datetime 
-from prj_utils import fetchAdjacencyMatrix, fetchData, getCentersData, mapShortestPath, mapTaxis, taxistrafficAnalysis
+from prj_utils import createFavoritePlaces, fetchAdjacencyMatrix, fetchData, findBestAreaToGoToFavoritesPlaces, getCentersData, mapShortestPath, mapTaxis, taxistrafficAnalysis
     
 
 
 #----------------------------
-taxis = fetchData()
-centers = getCentersData(taxis)
-adjacencyMatrix = fetchAdjacencyMatrix()
+# Initialization
+if 'taxis' not in st.session_state:
+    st.session_state['taxis'] = fetchData()
+    taxis = st.session_state['taxis']
+if 'centers' not in st.session_state:
+    st.session_state['centers'] = getCentersData(taxis)
+    centers = st.session_state['centers']
+if 'adjacencyMatrix' not in st.session_state:
+    st.session_state['adjacencyMatrix'] = fetchAdjacencyMatrix()
+    adjacencyMatrix = st.session_state['adjacencyMatrix']
+if 'favoritePlaces' not in st.session_state:
+    st.session_state['favoritePlaces'] = createFavoritePlaces()
+    favoritePlaces = st.session_state['favoritePlaces']
+
+
 #----------------------------
 
 
@@ -40,7 +52,7 @@ with st.sidebar:
     else:
         screenOption = st.selectbox(
             '',
-            ('Find shortest Path', 'Second feature')
+            ('Find shortest Path', 'Residential area suggestion')
         )
     pitch = st.slider(
                 "Map orientation",
@@ -50,10 +62,13 @@ with st.sidebar:
 
 if option == 'Taxis dashboard':
     if dashOption == "Taxis on map":
-        mapTaxis(taxis,date,hour,pitch)
+        mapTaxis(date,hour,pitch)
     else:
-        taxistrafficAnalysis(taxis,centers,pitch)
+        taxistrafficAnalysis(pitch)
 else:
     if screenOption == "Find shortest Path":
-        mapShortestPath(centers,adjacencyMatrix,pitch)
+        mapShortestPath(pitch)
+    else:
+        findBestAreaToGoToFavoritesPlaces(pitch)
+
 

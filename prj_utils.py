@@ -54,7 +54,12 @@ def fetchAdjacencyMatrix():
     data = np.genfromtxt("./matriceAdjacence.txt")
     return data.reshape((data.shape[0],int(data.shape[1]/2),2))
 
-def mapTaxis(taxis,date,hour,pitch):
+@st.cache(suppress_st_warning=True)
+def createFavoritePlaces():
+    return []
+
+def mapTaxis(date,hour,pitch):
+    taxis = st.session_state['taxis']
     lastTaxisPositions = getTaxiLastPos(taxis,date,hour)
     zoned = lastTaxisPositions["to_zone"].value_counts()
 
@@ -148,6 +153,7 @@ def definecentersData(data,zoneRadius=5):
 
 @st.cache(suppress_st_warning=True)
 def getCentersData(taxis):
+    
     centers = definecentersData(taxis,)
     centersData = taxis.groupby(by="to_zone")["speed","res_T","res_D"].mean()
     centersData[["longitude","latitude"]] = centers
@@ -180,8 +186,10 @@ def getCentersData(taxis):
     centersData["color"] = centersData["speed"].map(color_scale)
     return centersData
 
-def taxistrafficAnalysis(taxis,centersData,pitch):
+def taxistrafficAnalysis(pitch):
     
+    centersData = st.session_state['centers']
+
     layers = [
         pdk.Layer(
             "ScatterplotLayer",
@@ -242,22 +250,6 @@ def findShortestPath(a,b,adjacencyMatrix):
     path.reverse()
     return path, time
 
-def findBestMatch(areas,adjacencyMatrix):
-    res = []
-    for a in range(len(adjacencyMatrix)):
-        time_i = []
-        for b in areas:
-            _, t = findShortestPath(a=a,b=b,adjacencyMatrix=adjacencyMatrix)
-            if t == None:
-                time_i.append(None)
-                break
-            else:
-                time_i.append(t)
-        res.append(time_i)
-    res = pd.DataFrame(data=res,columns=areas)
-    res["total"] = res.sum(axis=1)
-    res.dropna(inplace=True)
-    return res
 
 def pathMapDataProcessing(path,pathCoords):
     coordsDF = pd.DataFrame([[pathCoords]],columns=["path"])
@@ -272,20 +264,22 @@ def pathMapDataProcessing(path,pathCoords):
             
     return coordsDF, centers
     
-def mapShortestPath(centers,adjacencyMatrix,pitch):
+def mapShortestPath(pitch):
+    
+    centers = st.session_state['centers']
+    adjacencyMatrix =st.session_state['adjacencyMatrix']
+
     pointA = st.selectbox(
         'Choose the area from which you are leaving',
-        centers["name"],
+        centers.index,
         index = 0
     )
     pointB = st.selectbox(
         'Choose the area where you are going',
-        centers["name"],
+        centers.index,
         index = 6
     )
-    a = centers[centers["name"]==pointA].index.tolist()[0]
-    b = centers[centers["name"]==pointB].index.tolist()[0]
-    path,timeNeeded = findShortestPath(a=a,b=b,adjacencyMatrix=adjacencyMatrix[:,:,0])
+    path,timeNeeded = findShortestPath(a=pointA,b=pointB,adjacencyMatrix=adjacencyMatrix[:,:,0])
     
     pathCoords = [list(centers[centers.index == area][["longitude","latitude"]].itertuples(index = False))[0] for area in path]
     pathCoords = [list(i) for i in pathCoords]
@@ -334,3 +328,106 @@ def mapShortestPath(centers,adjacencyMatrix,pitch):
         initial_view_state=view_state
     )
     st.pydeck_chart(r)
+
+
+#---------------------------------------------------------------------------
+
+def findBestMatch(areas,adjacencyMatrix):
+    res = []
+    for a in range(len(adjacencyMatrix)):
+        time_i = []
+        for b in areas:
+            _, t = findShortestPath(a=a,b=b,adjacencyMatrix=adjacencyMatrix)
+            if t == None:
+                time_i.append(None)
+                break
+            else:
+                time_i.append(t)
+        res.append(time_i)
+    res = pd.DataFrame(data=res,columns=areas)
+    res["total"] = res.sum(axis=1)
+    res.dropna(inplace=True)
+    return res
+
+def findBestAreaToGoToFavoritesPlaces(pitch):
+    favoritePlaces = st.session_state['favoritePlaces']
+    centers = st.session_state['centers']
+    adjacencyMatrix =st.session_state['adjacencyMatrix']
+    
+    tab1, tab2 = st.tabs(["Add a place here", "See the results here"])
+
+    with tab1:
+        # Form to add a favorite place
+        place = st.text_input('Place name', '')
+        location = st.selectbox(
+            'Choose the place area',
+            centers.index,
+            index = 6
+        )
+        if st.button("Add Favorite place"):
+            st.session_state['favoritePlaces'].append([location,place])
+        
+        st.write("#### Select the places that tou want for the calculation")
+        checkBoxs = [st.checkbox('PLACE : {} | AREA : {}'.format(favoritePlaces[i][1], favoritePlaces[i][0]),key = i) for i in range(len(favoritePlaces))]
+
+    with tab2:
+        # Data preprocessing
+        favPlaceDF = pd.DataFrame(favoritePlaces,columns=["zone","name"])
+        favPlaceDF[["longitude","latitude"]] = [list(centers[centers.index == favoritePlaces[i][0]][["longitude","latitude"]].itertuples(index = False))[0] for i in range(len(favoritePlaces))]
+        
+        # Best match calculation
+        res = findBestMatch(favPlaceDF[checkBoxs]["zone"],adjacencyMatrix=adjacencyMatrix[:,:,0])
+        res[["longitude","latitude"]] = centers[["longitude","latitude"]]
+        res.sort_values(by="total", inplace = True)
+        res = res[:1]
+
+        # Creation of the dataframe of plotted points (favorite Places and the bestMatch)
+        points = []
+        for i in range(len(favPlaceDF[checkBoxs])):
+            c = favPlaceDF.iloc[i]
+            points.append([c["longitude"], c["latitude"], c["name"],[255, 255, 0]])
+        for i in range(len(res)):
+            c = res.iloc[i]
+            points.append([c["longitude"], c["latitude"], "Area {}".format(c.name),[0, 150, 255]])
+        points = pd.DataFrame(points, columns=["longitude","latitude","name", "color"])
+
+
+        view_state = pdk.ViewState(
+            longitude=beijing["lon"],
+            latitude=beijing["lat"],
+            zoom=8,
+            min_zoom=5,
+            max_zoom=15,
+            pitch = pitch
+        )
+
+        layers = [
+            pdk.Layer(
+                "ScatterplotLayer",
+                data = points,
+                pickable=True,
+                opacity=0.8,
+                stroked=True,
+                filled=True,
+                radius_scale=10,
+                radius_min_pixels=1,
+                radius_max_pixels=100,
+                get_radius=50,
+                line_width_min_pixels=1,
+                get_position="[longitude,latitude]",
+                get_color="color",
+                get_line_color=[0, 0, 0],
+            )
+        ]
+        
+        r = pdk.Deck(
+            layers=layers,
+            initial_view_state=view_state,
+            tooltip={
+                'html': '<b>{name}</b> ',
+                'style': {
+                    'color': 'white'
+                }
+            }
+        )
+        st.pydeck_chart(r)
