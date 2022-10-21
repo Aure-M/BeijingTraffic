@@ -49,7 +49,12 @@ def fetchData():
     taxis.sort_index(axis=0,inplace = True)
     return taxis
 
-def mapTaxis(taxis,date,hour):
+@st.cache(suppress_st_warning=True)
+def fetchAdjacencyMatrix():
+    data = np.genfromtxt("./matriceAdjacence.txt")
+    return data.reshape((data.shape[0],int(data.shape[1]/2),2))
+
+def mapTaxis(taxis,date,hour,pitch):
     lastTaxisPositions = getTaxiLastPos(taxis,date,hour)
     zoned = lastTaxisPositions["to_zone"].value_counts()
 
@@ -72,7 +77,7 @@ def mapTaxis(taxis,date,hour):
     )
 
     # Set the viewport location
-    view_state = pdk.ViewState(latitude=beijing["lat"], longitude=beijing["lon"], zoom=10, bearing=0, pitch=60)
+    view_state = pdk.ViewState(latitude=beijing["lat"], longitude=beijing["lon"], zoom=10, bearing=0, pitch=pitch)
 
     # Render
     r = pdk.Deck(
@@ -171,12 +176,12 @@ def getCentersData(taxis):
     centers = definecentersData(taxis,)
     centersData = taxis.groupby(by="to_zone")["speed","res_T","res_D"].mean()
     centersData[["longitude","latitude"]] = centers
+    centersData["name"] = ["Area n_{}".format(c) for c in centersData.index]
     return centersData
 
-def taxistrafficAnalysis(taxis):
+def taxistrafficAnalysis(taxis,centersData,pitch):
 
     st.write(taxis[taxis["longitude"].isna()])
-    centersData = getCentersData(taxis)
     layers = [
         pdk.Layer(
             "HexagonLayer",
@@ -199,7 +204,7 @@ def taxistrafficAnalysis(taxis):
         zoom=8,
         min_zoom=5,
         max_zoom=15,
-        pitch=70,
+        pitch=pitch,
     )
 
     # Render
@@ -217,7 +222,7 @@ def taxistrafficAnalysis(taxis):
 
 #---------------------------------------------------------------------------
 
-def findShortestPath(a,b,adjacencyMatrix):
+def findShortestPath(a,b,adjacencyMatrix): 
     dist_matrix,predecessors = dijkstra(csgraph = adjacencyMatrix,indices = a, directed = True, return_predecessors = True)
     path = []
     time = 0
@@ -225,10 +230,11 @@ def findShortestPath(a,b,adjacencyMatrix):
     while tmp != a:
         path.append(tmp)
         time+=dist_matrix[tmp]
-        tmp = predecessors[tmp]
+        tmp = int(predecessors[tmp])
         if tmp == -9999:
             return None, None
     path.append(a)
+    path.reverse()
     return path, time
 
 def findBestMatch(areas,adjacencyMatrix):
@@ -247,3 +253,78 @@ def findBestMatch(areas,adjacencyMatrix):
     res["total"] = res.sum(axis=1)
     res.dropna(inplace=True)
     return res
+
+def pathMapDataProcessing(path,pathCoords):
+    coordsDF = pd.DataFrame([[pathCoords]],columns=["path"])
+    centers = pd.DataFrame(pathCoords,columns=["longitude","latitude"], index=path)
+    colors = [[0,255,0]]
+    for i in range(1, len(centers)):
+        if i == len(centers)-1:
+            colors.append([255,0,0])
+        else:
+            colors.append([255,140,0])
+    centers["color"] = colors
+            
+    return coordsDF, centers
+    
+def mapShortestPath(centers,adjacencyMatrix):
+    pointA = st.selectbox(
+        'Choose the area from which you are leaving',
+        centers["name"],
+        index = 0
+    )
+    pointB = st.selectbox(
+        'Choose the area where you are going',
+        centers["name"],
+        index = 6
+    )
+    a = centers[centers["name"]==pointA].index.tolist()[0]
+    b = centers[centers["name"]==pointB].index.tolist()[0]
+    path,timeNeeded = findShortestPath(a=a,b=b,adjacencyMatrix=adjacencyMatrix[:,:,0])
+    
+    pathCoords = [list(centers[centers.index == area][["longitude","latitude"]].itertuples(index = False))[0] for area in path]
+    pathCoords = [list(i) for i in pathCoords]
+
+    coordsDF, centersCoord = pathMapDataProcessing(path,pathCoords)
+    
+    view_state = pdk.ViewState(
+        longitude=beijing["lon"],
+        latitude=beijing["lat"],
+        zoom=8,
+        min_zoom=5,
+        max_zoom=15,
+    )
+    layers = [
+        pdk.Layer(
+            type="PathLayer",
+            data=coordsDF,
+            pickable=True,
+            get_color=[255,255,255],
+            width_scale=20,
+            width_min_pixels=2,
+            get_path="path",
+            get_width=5,
+        ),
+        pdk.Layer(
+            "ScatterplotLayer",
+            data = centersCoord,
+            pickable=True,
+            opacity=0.8,
+            stroked=True,
+            filled=True,
+            radius_scale=5,
+            radius_min_pixels=1,
+            radius_max_pixels=100,
+            get_radius=80,
+            line_width_min_pixels=1,
+            get_position="[longitude,latitude]",
+            get_color="color",
+            get_line_color=[0, 0, 0],
+        )
+    ]
+    
+    r = pdk.Deck(
+        layers=layers,
+        initial_view_state=view_state
+    )
+    st.pydeck_chart(r)

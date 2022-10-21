@@ -1,13 +1,14 @@
 import pandas as pd 
 import streamlit as st
 import datetime 
-from prj_utils import fetchData, mapTaxis, taxistrafficAnalysis
+from prj_utils import fetchAdjacencyMatrix, fetchData, getCentersData, mapShortestPath, mapTaxis, taxistrafficAnalysis
     
 
 
 #----------------------------
 taxis = fetchData()
-
+centers = getCentersData(taxis)
+adjacencyMatrix = fetchAdjacencyMatrix()
 #----------------------------
 
 
@@ -16,13 +17,19 @@ with st.sidebar:
     option = st.selectbox(
     'Select the app',
     ('Taxis dashboard', 'Suggestion feature'))
-
+    
     if option == 'Taxis dashboard':
         st.subheader("Choose a screen")
         dashOption = st.selectbox(
             '',
             ('Taxis on map', 'Traffic analysis')
         )
+        pitch = st.slider(
+                "Map orientation",
+                0,100,
+                value=70
+        )
+ 
         if dashOption == "Taxis on map":
             date = st.slider(
                 "Choose Day",
@@ -34,9 +41,18 @@ with st.sidebar:
                 0,24,
                 value=6
             )
+    else:
+        screenOption = st.selectbox(
+            '',
+            ('Find shortest Path', 'Second feature')
+        )
 
 if option == 'Taxis dashboard':
     if dashOption == "Taxis on map":
-        mapTaxis(taxis,date,hour)
+        mapTaxis(taxis,date,hour,pitch)
     else:
-        taxistrafficAnalysis(taxis)
+        taxistrafficAnalysis(taxis,centers,pitch)
+else:
+    if screenOption == "Find shortest Path":
+        mapShortestPath(centers,adjacencyMatrix)
+
