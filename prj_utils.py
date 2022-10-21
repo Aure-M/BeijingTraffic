@@ -180,7 +180,6 @@ def getCentersData(taxis):
 
 def taxistrafficAnalysis(taxis,centersData,pitch):
     
-    st.write(taxis[taxis["longitude"].isna()])
     layers = [
         pdk.Layer(
             "ScatterplotLayer",
@@ -216,7 +215,7 @@ def taxistrafficAnalysis(taxis,centersData,pitch):
             layers=layers,
             initial_view_state=view_state,
             tooltip={
-                'html': '<b>Area:</b> {name} </br> <b> Average Speed:</b>{speed}',
+                'html': '<b>Area:</b> {name} </br> <b> Average Speed:</b>{speed} km/h',
                 'style': {
                     'color': 'white'
                 }
