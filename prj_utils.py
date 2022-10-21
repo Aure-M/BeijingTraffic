@@ -167,7 +167,9 @@ def getCentersData(taxis):
         [128, 0, 38],
     ]
     COLOR_RANGE.reverse()
-    BREAKS = np.linspace(centersData["speed"].max(),centersData["speed"].min(),num=len(COLOR_RANGE))
+    max = centersData["speed"].mean()
+    min = centersData["speed"].min()
+    BREAKS = np.linspace(min,max,num=len(COLOR_RANGE))
 
     def color_scale(val):
         for i, b in enumerate(BREAKS):
