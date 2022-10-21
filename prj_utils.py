@@ -375,6 +375,7 @@ def findBestAreaToGoToFavoritesPlaces(pitch):
 
     with tab2:
         # Data preprocessing
+        st.write("The area that is suggested is colored in BLUE and your favorites places are in YELLOW")
         favPlaceDF = pd.DataFrame(favoritePlaces,columns=["zone","name"])
         favPlaceDF[["longitude","latitude"]] = [list(centers[centers.index == favoritePlaces[i][0]][["longitude","latitude"]].itertuples(index = False))[0] for i in range(len(favoritePlaces))]
         
