@@ -96,39 +96,14 @@ def mapTaxis(taxis,date,hour,pitch):
     l = int(len(zoned)/3)
     with col1:
         for i in range(l+1):
-            st.write("zone_{} : ".format(int(zoned.index[i])), zoned[zoned.index[i]])
+            st.write("Area_{} : ".format(int(zoned.index[i])), zoned[zoned.index[i]])
     with col2:
         for i in range(l+1,l*2+1):
-            st.write("zone_{} : ".format(int(zoned.index[i])), zoned[zoned.index[i]])
+            st.write("Area_{} : ".format(int(zoned.index[i])), zoned[zoned.index[i]])
     with col3:
         for i in range(l*2+1,l*3+1):
-            st.write("zone_{} : ".format(int(zoned.index[i])), zoned[zoned.index[i]])
+            st.write("Area_{} : ".format(int(zoned.index[i])), zoned[zoned.index[i]])
 #---------------------------------------------------------------------------
-
-COLOR_RANGE = [
-    [65, 182, 196],
-    [127, 205, 187],
-    [199, 233, 180],
-    [237, 248, 177],
-    [255, 255, 204],
-    [255, 237, 160],
-    [254, 217, 118],
-    [254, 178, 76],
-    [253, 141, 60],
-    [252, 78, 42],
-    [227, 26, 28],
-    [189, 0, 38],
-    [128, 0, 38],
-]
-
-BREAKS = [-0.6, -0.45, -0.3, -0.15, 0, 0.15, 0.3, 0.45, 0.6, 0.75, 0.9, 1.05, 1.2]
-
-
-def color_scale(val):
-    for i, b in enumerate(BREAKS):
-        if val < b:
-            return COLOR_RANGE[i]
-    return COLOR_RANGE[i]
 
 def distance(lat1, lat2, lon1, lon2):
 	
@@ -177,23 +152,52 @@ def getCentersData(taxis):
     centersData = taxis.groupby(by="to_zone")["speed","res_T","res_D"].mean()
     centersData[["longitude","latitude"]] = centers
     centersData["name"] = ["Area n_{}".format(c) for c in centersData.index]
+    
+    COLOR_RANGE = [
+        [199, 233, 180],
+        [237, 248, 177],
+        [255, 255, 204],
+        [255, 237, 160],
+        [254, 217, 118],
+        [254, 178, 76],
+        [253, 141, 60],
+        [252, 78, 42],
+        [227, 26, 28],
+        [189, 0, 38],
+        [128, 0, 38],
+    ]
+    COLOR_RANGE.reverse()
+    BREAKS = np.linspace(centersData["speed"].max(),centersData["speed"].min(),num=len(COLOR_RANGE))
+
+    def color_scale(val):
+        for i, b in enumerate(BREAKS):
+            if val < b:
+                return COLOR_RANGE[i]
+        return COLOR_RANGE[i]
+
+    centersData["color"] = centersData["speed"].map(color_scale)
     return centersData
 
 def taxistrafficAnalysis(taxis,centersData,pitch):
-
+    
     st.write(taxis[taxis["longitude"].isna()])
     layers = [
         pdk.Layer(
-            "HexagonLayer",
+            "ScatterplotLayer",
             centersData,
+            stroked=True,
+            filled=True,
+            radius_scale=6,
+            radius_min_pixels=1,
+            radius_max_pixels=100,
+            line_width_min_pixels=1,
             get_position="[longitude, latitude]",
             auto_highlight=True,
             elevation_scale=50,
-            radius=3000,
+            get_fill_color = "color",
+            get_radius=400,
             pickable=True,
-            elevation_range=[0, 5000],
-            extruded=True,
-            coverage=1,
+            opacity=0.8,
         ),
     ]
 
@@ -212,7 +216,7 @@ def taxistrafficAnalysis(taxis,centersData,pitch):
             layers=layers,
             initial_view_state=view_state,
             tooltip={
-                'html': '<b>Area:</b> {index}',
+                'html': '<b>Area:</b> {name} </br> <b> Average Speed:</b>{speed}',
                 'style': {
                     'color': 'white'
                 }
@@ -267,7 +271,7 @@ def pathMapDataProcessing(path,pathCoords):
             
     return coordsDF, centers
     
-def mapShortestPath(centers,adjacencyMatrix):
+def mapShortestPath(centers,adjacencyMatrix,pitch):
     pointA = st.selectbox(
         'Choose the area from which you are leaving',
         centers["name"],
@@ -293,6 +297,7 @@ def mapShortestPath(centers,adjacencyMatrix):
         zoom=8,
         min_zoom=5,
         max_zoom=15,
+        pitch = pitch
     )
     layers = [
         pdk.Layer(

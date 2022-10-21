@@ -24,11 +24,7 @@ with st.sidebar:
             '',
             ('Taxis on map', 'Traffic analysis')
         )
-        pitch = st.slider(
-                "Map orientation",
-                0,100,
-                value=70
-        )
+        
  
         if dashOption == "Taxis on map":
             date = st.slider(
@@ -46,6 +42,11 @@ with st.sidebar:
             '',
             ('Find shortest Path', 'Second feature')
         )
+    pitch = st.slider(
+                "Map orientation",
+                0,100,
+                value=70
+    )
 
 if option == 'Taxis dashboard':
     if dashOption == "Taxis on map":
@@ -54,5 +55,5 @@ if option == 'Taxis dashboard':
         taxistrafficAnalysis(taxis,centers,pitch)
 else:
     if screenOption == "Find shortest Path":
-        mapShortestPath(centers,adjacencyMatrix)
+        mapShortestPath(centers,adjacencyMatrix,pitch)
 
