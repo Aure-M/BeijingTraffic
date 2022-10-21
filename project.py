@@ -55,7 +55,7 @@ with st.sidebar:
             ('Find shortest Path', 'Residential area suggestion')
         )
     pitch = st.slider(
-                "Map orientation",
+                "3d map orientation",
                 0,100,
                 value=70
     )

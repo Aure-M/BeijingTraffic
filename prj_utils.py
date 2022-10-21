@@ -59,6 +59,8 @@ def createFavoritePlaces():
     return []
 
 def mapTaxis(date,hour,pitch):
+    st.write("### Taxis on map")
+    st.write("The point on this plot represent the last position known of all the taxis at a certain time (date and hour)")
     taxis = st.session_state['taxis']
     lastTaxisPositions = getTaxiLastPos(taxis,date,hour)
     zoned = lastTaxisPositions["to_zone"].value_counts()
@@ -187,7 +189,8 @@ def getCentersData(taxis):
     return centersData
 
 def taxistrafficAnalysis(pitch):
-    
+    st.write("### Taxis analysis")
+    st.write("You can see a scatter of the areas from areas resulting from the partition of Beijing. The areas with the highest congestion rates are redder and the ones with the lowest rate whiter ")
     centersData = st.session_state['centers']
 
     layers = [
