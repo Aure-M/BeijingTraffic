@@ -7,7 +7,7 @@ from streamlit_folium import st_folium
 import numpy as np
 from scipy.sparse.csgraph import dijkstra
 from datetime import datetime
-from math import radians, cos, sin, asin, sqrt
+from math import ceil, radians, cos, sin, asin, sqrt
 
 #---------------------------------------------------------------------------
 beijing = {"lat":40.190632, "lon":116.412144,"radius":sqrt(16411/(np.pi*2))}
@@ -291,7 +291,7 @@ def mapShortestPath(centers,adjacencyMatrix,pitch):
     pathCoords = [list(i) for i in pathCoords]
 
     coordsDF, centersCoord = pathMapDataProcessing(path,pathCoords)
-    
+    st.write("### Average time(min) : ",ceil(timeNeeded))
     view_state = pdk.ViewState(
         longitude=beijing["lon"],
         latitude=beijing["lat"],
